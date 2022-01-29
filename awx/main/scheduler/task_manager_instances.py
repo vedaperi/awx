@@ -61,7 +61,7 @@ class PrioritizedControlNodes:
         self.control_nodes.add(node)
 
     # TODO: Maybe rename
-    def assign_task_to_node(self, task, task_manager_instances={}, graph=None):
+    def assign_task_to_node(self, task, task_manager_instances={}, ig_capacity_graph=None):
         """Find most available control instance and deduct task impact if we find it.
 
         If no node is available, return False
@@ -72,11 +72,12 @@ class PrioritizedControlNodes:
         if best_instance.remaining_capacity < task.task_impact:
             return False
 
-        if task_manager_instances and graph:
+        if task_manager_instances and ig_capacity_graph:
+            # This whole block is kind of paranoid.
+            # It covers a case that should really not happen since every time we assign a task to a node, we deduct from its instance group
+            # capacity as well. If we never see this warning, maybe we can drop this code
             for ig in task_manager_instances[best_instance.hostname].instance_groups:
-                ig_data = graph[ig]
-                # This should really not happen since every time we assign a task to a node, we deduct from its instance group
-                # capacity as well. If we never see this, maybe we can drop this code
+                ig_data = ig_capacity_graph[ig]
                 if not ig_data['control_capacity'] - ig_data['consumed_control_capacity'] >= task.task_impact:
                     logger.warn(f"Somehow we had capacity on a control node {best_instance} but not on its instance_group {instance_group}")
                     return False
