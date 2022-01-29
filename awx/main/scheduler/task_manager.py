@@ -6,7 +6,6 @@ from datetime import timedelta
 import logging
 import uuid
 import json
-import heapq
 from types import SimpleNamespace
 
 # Django
@@ -38,7 +37,7 @@ from awx.main.utils import get_type_for_model, task_manager_bulk_reschedule, sch
 from awx.main.utils.common import create_partition
 from awx.main.signals import disable_activity_stream
 from awx.main.utils import decrypt_field
-from awx.main.scheduler.capacity_utils import TaskManagerInstances
+from awx.main.scheduler.task_manager_instances import TaskManagerInstances
 
 logger = logging.getLogger('awx.main.scheduler')
 
