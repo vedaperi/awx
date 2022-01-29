@@ -60,32 +60,6 @@ class PrioritizedControlNodes:
         self.control_nodes.remove(node)
         self.control_nodes.add(node)
 
-    # TODO: Maybe rename
-    def assign_task_to_node(self, task, task_manager_instances={}, ig_capacity_graph=None):
-        """Find most available control instance and deduct task impact if we find it.
-
-        If no node is available, return False
-        """
-        control_heap = list(self.control_nodes)
-        heapq.heapify(control_heap)
-        best_instance = heapq.nlargest(1, control_heap).pop()
-        if best_instance.remaining_capacity < task.task_impact:
-            return False
-
-        if task_manager_instances and ig_capacity_graph:
-            # This whole block is kind of paranoid.
-            # It covers a case that should really not happen since every time we assign a task to a node, we deduct from its instance group
-            # capacity as well. If we never see this warning, maybe we can drop this code
-            for ig in task_manager_instances[best_instance.hostname].instance_groups:
-                ig_data = ig_capacity_graph[ig]
-                if not ig_data['control_capacity'] - ig_data['consumed_control_capacity'] >= task.task_impact:
-                    logger.warn(f"Somehow we had capacity on a control node {best_instance} but not on its instance_group {instance_group}")
-                    return False
-        logger.debug(f"chose {best_instance} to run {task.log_format}")
-        best_instance.remaining_capacity -= task.task_impact
-        self.update(best_instance)
-        return best_instance
-
 
 class TaskManagerInstances:
     def __init__(self):
@@ -122,3 +96,28 @@ class TaskManagerInstances:
                     if instance.node_type in (capacity_type, 'hybrid'):
                         graph[rampart_group.name][f'{capacity_type}_capacity'] += instance.capacity
         return graph
+
+    def assign_task_to_control_node(self, task, ig_capacity_graph=None):
+        """Find most available control instance and deduct task impact if we find it.
+
+        If no node is available, return False
+        """
+        control_heap = list(self.control_nodes)
+        heapq.heapify(control_heap)
+        best_instance = heapq.nlargest(1, control_heap).pop()
+        if best_instance.remaining_capacity < task.task_impact:
+            return False
+
+        if ig_capacity_graph:
+            # This whole block is kind of paranoid.
+            # It covers a case that should really not happen since every time we assign a task to a node, we deduct from its instance group
+            # capacity as well. If we never see this warning, maybe we can drop this code
+            for ig in self.instances_partial[best_instance.hostname].instance_groups:
+                ig_data = ig_capacity_graph[ig]
+                if not ig_data['control_capacity'] - ig_data['consumed_control_capacity'] >= task.task_impact:
+                    logger.warn(f"Somehow we had capacity on a control node {best_instance} but not on its instance_group {instance_group}")
+                    return False
+        logger.debug(f"chose {best_instance} to run {task.log_format}")
+        best_instance.remaining_capacity -= task.task_impact
+        self.update(best_instance)
+        return best_instance

@@ -68,7 +68,6 @@ class TaskManager:
         Init AFTER we know this instance of the task manager will run because the lock is acquired.
         """
         self.task_manager_instances = TaskManagerInstances()
-        self.control_nodes = self.task_manager_instances.control_nodes
         self.ig_capacity_graph = self.task_manager_instances.init_ig_capacity_graph(self.ig_capacity_graph)
 
     def get_and_consume_capacity_on_control_node_with_sufficient_capacity(self, task):
@@ -79,7 +78,7 @@ class TaskManager:
 
         Return None if no appropriate instance found.
         """
-        control_node = self.control_nodes.assign_task_to_node(task, self.task_manager_instances, self.ig_capacity_graph)
+        control_node = self.task_manager_instances.assign_task_to_control_node(task, self.ig_capacity_graph)
         if not control_node:
             logger.debug(f"No control node eligible to run {task.log_format}")
             return None
